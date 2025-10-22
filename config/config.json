@@ -1,0 +1,50 @@
+{
+  "help": {
+    "type": "meta",
+    "description": "Show help"
+  },
+  "exit": {
+    "type": "meta",
+    "description": "Exit the app"
+  },
+  "pwd": {
+    "type": "navigation",
+    "description": "Current path"
+  },
+  "ls": {
+    "type": "directory",
+    "description": "List files"
+  },
+  "cd": {
+    "type": "navigation",
+    "description": "Change directory"
+  },
+  "cat": {
+    "type": "file",
+    "description": "Show file"
+  },
+  "touch": {
+    "type": "file",
+    "description": "Create file"
+  },
+  "rm": {
+    "type": "file",
+    "description": "Delete file"
+  },
+  "mkdir": {
+    "type": "directory",
+    "description": "Create folder"
+  },
+  "rmdir": {
+    "type": "directory",
+    "description": "Delete folder"
+  },
+  "cp": {
+    "type": "file",
+    "description": "Copy"
+  },
+  "mv": {
+    "type": "file",
+    "description": "Move or rename"
+  }
+}

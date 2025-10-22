@@ -1,0 +1,22 @@
+{
+  "name": "file-manager-app",
+  "version": "1.0.0",
+  "description": "Interactive command-line file manager built with Node.js. Provides advanced file and directory operations via a user-friendly terminal interface using the readline library. Features include colored output with chalk, config customization, and modular command structure.",
+  "type": "module",
+  "main": "app.mjs",
+  "scripts": {
+    "start": "node app.mjs",
+    "dev": "node --watch app.mjs"
+  },
+  "keywords": [
+    "file-manager",
+    "nodejs",
+    "esm",
+    "cli"
+  ],
+  "author": "yrssslv",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.3.0"
+  }
+}
