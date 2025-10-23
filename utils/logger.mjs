@@ -2,7 +2,6 @@ import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
 
-// Log levels and filtering
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 let CURRENT_LEVEL =
   LEVELS[(process.env.LOG_LEVEL || 'info').toLowerCase()] || LEVELS.info;
@@ -53,10 +52,8 @@ const logFilePath = path.resolve(process.cwd(), 'app.log');
 export function logToFile(msg, level = 'INFO') {
   const time = new Date().toISOString();
   const logMsg = `[${time}] [${level}] ${msg}\n`;
-  // Use fs.appendFile (callback) to avoid recursive calls to our own logger.
   fs.appendFile(logFilePath, logMsg, (err) => {
     if (err) {
-      // Intentionally using console.error here to avoid recursion into logger.error
       console.error('Failed to write log to file:', err);
     }
   });
