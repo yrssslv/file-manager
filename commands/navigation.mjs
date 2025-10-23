@@ -6,7 +6,7 @@ const ROOT_DIR = process.env.ALLOWED_ROOT_DIR || process.cwd();
 
 function pwd() {
   const currentDir = process.cwd();
-  const absolutePath = formatPath(currentDir, '/'); // покажем абсолютный путь
+  const absolutePath = formatPath(currentDir, '/');
   info(`Current directory: ${absolutePath}`);
 }
 

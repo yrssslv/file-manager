@@ -37,20 +37,20 @@ export async function ls(p = ROOT_DIR) {
 
     const result = [];
     for (const item of items) {
-      const fullPath = `${p}/${item}`;
+      const fullPath = path.join(p, item);
       const isDir = await isDirectory(fullPath);
       result.push(isDir ? `${item}/` : item);
     }
     console.log(formatList(result));
   } catch (err) {
     if (err.code === 'ENOENT') {
-      console.error(formatError('Directory does not exist.'));
+      error(formatError('Directory does not exist.'));
     } else if (err.code === 'EACCES') {
-      console.error(formatError('Permission denied.'));
+      error(formatError('Permission denied.'));
     } else if (err.code === 'EOUTSIDE') {
-      console.error(formatError('Operation outside allowed directory.'));
+      error(formatError('Operation outside allowed directory.'));
     } else {
-      console.error(formatError(`Error reading directory: ${err.message}`));
+      error(formatError(`Error reading directory: ${err.message}`));
     }
   }
 }
@@ -84,7 +84,12 @@ export async function rmdir(dirPath) {
       return;
     }
     checkPathAllowed(dirPath);
-    await safeRmdir(dirPath);
+    const res = await safeRmdir(dirPath);
+    if (!res || res.success !== true) {
+      const msg = res && res.error ? res.error.message : 'Unknown error';
+      error(formatError(`Failed to remove directory: ${msg}`));
+      return;
+    }
     info(`Directory removed: ${dirPath}`);
   } catch (err) {
     if (err.code === 'ENOTEMPTY') {

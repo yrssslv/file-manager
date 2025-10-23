@@ -69,8 +69,13 @@ async function rm(filePath) {
       error('The specified path is not a file.');
       return;
     }
-    await safeUnlink(filePath);
-    info('File deleted successfully.');
+    const res = await safeUnlink(filePath);
+    if (res && res.success) {
+      info('File deleted successfully.');
+    } else {
+      const msg = res && res.error ? res.error.message : 'Unknown error';
+      error(formatError(`Error deleting file: ${msg}`));
+    }
   } catch (err) {
     error(formatError('Error deleting file', err));
   }

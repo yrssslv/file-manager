@@ -1,78 +1,94 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-export async function exists(path) {
+function validatePath(p) {
+  if (typeof p !== 'string' || p.trim() === '') {
+    throw new Error('Invalid path: Path must be a non-empty string');
+  }
+}
+
+export async function exists(filePath) {
   try {
-    await fs.access(path);
+    validatePath(filePath);
+    await fs.access(filePath);
     return true;
   } catch {
     return false;
   }
 }
 
-export async function isDirectory(path) {
-  const stat = await fs.stat(path);
+export async function isDirectory(filePath) {
+  validatePath(filePath);
+  const stat = await fs.stat(filePath);
   return stat.isDirectory();
 }
 
-export async function isFile(path) {
-  const stat = await fs.stat(path);
+export async function isFile(filePath) {
+  validatePath(filePath);
+  const stat = await fs.stat(filePath);
   return stat.isFile();
 }
 
-export async function getSize(path) {
-  const stat = await fs.stat(path);
+export async function getSize(filePath) {
+  validatePath(filePath);
+  const stat = await fs.stat(filePath);
   return stat.size;
 }
 
-export async function safeUnlink(path) {
+export async function safeUnlink(filePath) {
   try {
-    await fs.unlink(path);
-    return true;
-  } catch {
-    return false;
+    validatePath(filePath);
+    await fs.unlink(filePath);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
   }
 }
+
 export async function safeRmdir(dirPath) {
   try {
+    validatePath(dirPath);
     await fs.rm(dirPath, { recursive: true, force: true });
-    return true;
-  } catch {
-    return false;
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
   }
 }
 
 export async function copyFile(src, dest) {
-  try {
-    await fs.copyFile(src, dest);
-    return true;
-  } catch {
-    return false;
-  }
+  validatePath(src);
+  validatePath(dest);
+  await fs.copyFile(src, dest);
 }
+
 export async function copyDir(src, dest) {
   try {
+    validatePath(src);
+    validatePath(dest);
     await fs.mkdir(dest, { recursive: true });
     const entries = await fs.readdir(src, { withFileTypes: true });
     for (const entry of entries) {
       const srcPath = path.join(src, entry.name);
       const destPath = path.join(dest, entry.name);
       if (entry.isDirectory()) {
-        await copyDir(srcPath, destPath);
+        const result = await copyDir(srcPath, destPath);
+        if (!result.success) {
+          return result;
+        }
       } else {
         await fs.copyFile(srcPath, destPath);
       }
     }
-    return true;
-  } catch {
-    return false;
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
   }
 }
 
 export async function readDir(dirPath) {
   try {
-    const files = await fs.readdir(dirPath);
-    return files;
+    validatePath(dirPath);
+    return await fs.readdir(dirPath);
   } catch {
     return [];
   }
