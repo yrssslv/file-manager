@@ -1,0 +1,50 @@
+{
+  "help": {
+    "type": "meta",
+    "description": "Usage: help - Show help"
+  },
+  "exit": {
+    "type": "meta",
+    "description": "Usage: exit - Exit the app"
+  },
+  "pwd": {
+    "type": "navigation",
+    "description": "Usage: pwd - Show current directory"
+  },
+  "ls": {
+    "type": "directory",
+    "description": "Usage: ls [dir] - List directory contents"
+  },
+  "cd": {
+    "type": "navigation",
+    "description": "Usage: cd <dir> - Change directory"
+  },
+  "cat": {
+    "type": "file",
+    "description": "Usage: cat <file> - Show file contents"
+  },
+  "touch": {
+    "type": "file",
+    "description": "Usage: touch <file> - Create file"
+  },
+  "rm": {
+    "type": "file",
+    "description": "Usage: rm <file> - Delete file"
+  },
+  "mkdir": {
+    "type": "directory",
+    "description": "Usage: mkdir <dir> - Create folder"
+  },
+  "rmdir": {
+    "type": "directory",
+    "description": "Usage: rmdir <dir> [-r|--recursive] [-y|--yes] - Delete folder (confirm recursive unless --yes)"
+  },
+  "cp": {
+    "type": "file",
+    "description": "Usage: cp <src> <dest> - Copy file"
+  },
+  "mv": {
+    "type": "file",
+    "description": "Usage: mv <src> <dest> - Move or rename file"
+  }
+}

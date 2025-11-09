@@ -1,0 +1,9 @@
+node_modules/
+
+dist/
+*.d.ts
+*.d.mts
+
+package-lock.json
+
+.git/

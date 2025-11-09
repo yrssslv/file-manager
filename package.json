@@ -1,0 +1,53 @@
+{
+  "name": "file-manager-app",
+  "version": "1.0.0",
+  "description": "Interactive command-line file manager built with Node.js. Provides advanced file and directory operations via a user-friendly terminal interface using the readline library. Features include colored output with chalk, config customization, and modular command structure.",
+  "type": "module",
+  "main": "./dist/app.mjs",
+  "types": "./dist/app.d.mts",
+  "bin": {
+    "fm": "./bin/fm.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc && npm run copy-config",
+    "copy-config": "if not exist dist\\config mkdir dist\\config && copy config\\config.json dist\\config\\config.json",
+    "start": "npm run build && node dist/app.mjs",
+    "dev": "tsx watch app.mts",
+    "test": "node --test",
+    "test:smoke": "tsx --test tests/smoke/*.test.mts",
+    "test:edge-cases": "tsx --test tests/edge-cases/*.test.mts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "clean": "powershell -Command \"Remove-Item -Path dist -Recurse -Force -ErrorAction SilentlyContinue\""
+  },
+  "keywords": [
+    "file-manager",
+    "nodejs",
+    "esm",
+    "cli"
+  ],
+  "author": "yrssslv",
+  "license": "ISC",
+  "files": [
+    "dist/",
+    "bin/",
+    "config/",
+    "README.md"
+  ],
+  "dependencies": {
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^9.14.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.20.6"
+  }
+}
