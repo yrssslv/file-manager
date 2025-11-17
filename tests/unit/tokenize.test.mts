@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tokenize } from '../../utils/tokenizer.mjs';
+import { tokenize } from '../../src/utils/tokenizer.mjs';
 
 test('tokenize basic arguments', () => {
   const result = tokenize('ls -l file.txt');

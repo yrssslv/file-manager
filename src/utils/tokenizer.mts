@@ -1,12 +1,6 @@
-export type TokenType = 'argument' | 'flag' | 'option';
+import type { TokenType, Token } from '../types/index.mjs';
 
-export type Token = {
-  type: TokenType;
-  value: string;
-  quoted: boolean;
-  key?: string;
-  val?: string;
-};
+export type { TokenType, Token };
 
 export function tokenize(input: string): Token[] {
   const tokens: Token[] = [];

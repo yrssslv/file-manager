@@ -13,12 +13,13 @@
   },
   "scripts": {
     "build": "tsc && npm run copy-config",
-    "copy-config": "if not exist dist\\config mkdir dist\\config && copy config\\config.json dist\\config\\config.json",
+    "copy-config": "if not exist dist\\config mkdir dist\\config && copy src\\config\\config.json dist\\config\\config.json",
     "start": "npm run build && node dist/app.mjs",
-    "dev": "tsx watch app.mts",
+    "dev": "tsx watch src/app.mts",
     "test": "node --test",
     "test:smoke": "tsx --test tests/smoke/*.test.mts",
     "test:edge-cases": "tsx --test tests/edge-cases/*.test.mts",
+    "test:unit": "tsx --test tests/unit/*.test.mts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -37,7 +38,6 @@
   "files": [
     "dist/",
     "bin/",
-    "config/",
     "README.md"
   ],
   "dependencies": {

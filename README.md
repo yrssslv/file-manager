@@ -21,11 +21,12 @@ _All filesystem operations are sandboxed within a designated root directory for 
 ### Core Capabilities
 
 - **Sandboxed Environment** — All operations are confined to `ALLOWED_ROOT_DIR` for maximum security
-- **Full TypeScript Support** — Strict type checking with comprehensive type definitions
+- **Full TypeScript Support** — Strict type checking with centralized type definitions
 - **Modern ES Modules** — Native ESM with `.mts` source files compiled to `.mjs`
 - **Interactive CLI** — Readline-based interface with command history and auto-completion
 - **Colorized Output** — Enhanced readability with chalk-powered colored terminal output
-- **Modular Architecture** — Clean separation of concerns with organized command structure
+- **Modular Architecture** — Clean separation with `/src` directory structure
+- **Centralized Error Handling** — Unified error processing with debug mode support
 
 ### Developer Experience
 
@@ -298,7 +299,7 @@ npm start
 
 ### Configuration File
 
-Command metadata is defined in `config/config.json`:
+Command metadata is defined in `src/config/config.json`:
 
 ```json
 {
@@ -313,7 +314,7 @@ Command metadata is defined in `config/config.json`:
 }
 ```
 
-This file is used by the `help` command to generate the interactive menu with command grouping.
+This file is compiled to `dist/config/` during build and used by the `help` command to generate the interactive menu with command grouping.
 
 ---
 
@@ -321,32 +322,37 @@ This file is used by the `help` command to generate the interactive menu with co
 
 ```
 file-manager/
-├── app.mts                  # Main application entry point
-├── bin/
-│   └── fm.mjs               # Global CLI executable wrapper
-├── commands/
-│   ├── dir.mts              # Directory operations (ls, mkdir, rmdir, tree)
-│   ├── file.mts             # File operations (cat, touch, rm, cp, mv, echo)
-│   ├── meta.mts             # Meta commands (help, exit, clear)
-│   ├── navigation.mts       # Navigation commands (pwd, cd)
-│   └── index.mts            # Command exports
-├── config/
-│   └── config.json          # Command definitions and metadata
-├── utils/
-│   ├── constants.mts        # Application constants
-│   ├── format.mts           # Output formatting utilities
-│   ├── fs-utils.mts         # Safe filesystem operations
-│   ├── logger.mts           # Logging with level support
-│   ├── tokenizer.mts        # Command line argument parser
-│   └── index.mts            # Utility exports
-├── tests/
+├── src/                     # Source code directory
+│   ├── app.mts              # Main application entry point
+│   ├── types/               # TypeScript type definitions
+│   │   └── index.mts        # Centralized types (Token, Config, CommandContext, etc.)
+│   ├── commands/            # CLI command implementations
+│   │   ├── dir.mts          # Directory operations (ls, mkdir, rmdir, tree)
+│   │   ├── file.mts         # File operations (cat, touch, rm, cp, mv, echo)
+│   │   ├── meta.mts         # Meta commands (help, exit, clear)
+│   │   ├── navigation.mts   # Navigation commands (pwd, cd)
+│   │   └── index.mts        # Command exports
+│   ├── utils/               # Utility functions
+│   │   ├── constants.mts    # Application constants
+│   │   ├── format.mts       # Output formatting utilities
+│   │   ├── fs-utils.mts     # Safe filesystem operations with sandboxing
+│   │   ├── logger.mts       # Logging with level support
+│   │   ├── tokenizer.mts    # Command line argument parser
+│   │   └── index.mts        # Utility exports
+│   └── config/              # Configuration files
+│       └── config.json      # Command definitions and metadata
+├── tests/                   # Test suites (not compiled)
+│   ├── unit/                # Unit tests
 │   ├── smoke/               # End-to-end smoke tests
 │   ├── edge-cases/          # Edge case tests
 │   └── helpers/             # Test utilities and runners
-├── dist/                    # Compiled JavaScript output
+├── bin/                     # CLI entry point
+│   └── fm.mjs               # Global CLI executable wrapper
+├── dist/                    # Compiled JavaScript output (generated)
 ├── tsconfig.json            # TypeScript compiler configuration
 ├── eslint.config.mjs        # ESLint flat configuration
 ├── .prettierrc.json         # Prettier code formatter settings
+├── package.json             # Project dependencies and scripts
 └── start.bat                # Windows quick-start script
 ```
 
@@ -394,6 +400,11 @@ file-manager/
       <td>Edge Cases</td>
       <td><code>npm run test:edge-cases</code></td>
       <td>Run edge case tests</td>
+    </tr>
+    <tr>
+      <td>Unit Tests</td>
+      <td><code>npm run test:unit</code></td>
+      <td>Run unit tests only</td>
     </tr>
     <tr>
       <td>Type Check</td>
@@ -467,6 +478,18 @@ npm run format:check
 
 ## Architecture
 
+### Project Organization
+
+The application follows a clean, modular architecture:
+
+- **`/src`** — All source code organized by responsibility
+  - **`types/`** — Centralized TypeScript type definitions
+  - **`commands/`** — CLI command implementations
+  - **`utils/`** — Shared utility functions
+  - **`config/`** — Configuration files
+- **`/tests`** — Test suites (excluded from compilation)
+- **`/dist`** — Compiled output (1:1 mapping with `/src`)
+
 ### Sandboxing
 
 All filesystem operations are validated against `ALLOWED_ROOT_DIR` using:
@@ -474,6 +497,7 @@ All filesystem operations are validated against `ALLOWED_ROOT_DIR` using:
 - **Path resolution** to prevent symlink escapes
 - **Strict boundary checking** before any operation
 - **Real path comparison** to catch manipulation attempts
+- Implementation in `src/utils/fs-utils.mts`
 
 ### Type Safety
 
@@ -485,15 +509,16 @@ The project uses TypeScript with strict mode enabled:
 - `noUnusedLocals: true`
 - `noImplicitReturns: true`
 
-All code is fully typed with no `any` types allowed.
+Centralized types in `src/types/index.mts` ensure consistency across the codebase.
 
 ### Error Handling
 
-Comprehensive error handling with:
+Centralized error handling in `src/app.mts`:
 
-- **Typed error objects** for specific error cases
+- **`handleCommandError()`** — Unified command error processing
+- **Global handlers** for unhandled rejections and exceptions
+- **DEBUG mode support** — Set `DEBUG=true` for stack traces
 - **Descriptive error messages** for user guidance
-- **Safe fallbacks** for unknown errors
 - **Logging at appropriate levels** (debug, info, warn, error)
 
 ---

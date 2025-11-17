@@ -6,7 +6,7 @@
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -34,6 +34,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["**/*.mts", "**/*.ts", "bin/**/*.mjs", "eslint.config.mjs"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.mts"],
+  "exclude": ["node_modules", "dist", "tests"]
 }
