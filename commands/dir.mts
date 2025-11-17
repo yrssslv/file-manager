@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import chalk from 'chalk';
 import {
   readDir,
   isDirectory,
@@ -28,7 +29,7 @@ async function resolveDirPath(
   return resolved;
 }
 
-export async function ls(p: string = ROOT_DIR): Promise<void> {
+async function ls(p: string = ROOT_DIR): Promise<void> {
   try {
     if (isArgEmpty(p)) p = ROOT_DIR;
     const candidate = path.resolve(p);
@@ -78,7 +79,7 @@ export async function ls(p: string = ROOT_DIR): Promise<void> {
   }
 }
 
-export async function mkdir(dirPath: string, context: any): Promise<void> {
+async function mkdir(dirPath: string, context: any): Promise<void> {
   try {
     if (isArgEmpty(dirPath)) {
       const usage = context?.config?.mkdir?.description || 'Usage: mkdir <dir>';
@@ -111,7 +112,7 @@ export async function mkdir(dirPath: string, context: any): Promise<void> {
   }
 }
 
-export async function rmdir(...inputs: any[]): Promise<void> {
+async function rmdir(...inputs: any[]): Promise<void> {
   let args = inputs;
   const maybeContext = args.slice(-1)[0];
   if (maybeContext && typeof maybeContext === 'object' && !Array.isArray(maybeContext)) {
@@ -208,3 +209,146 @@ export async function rmdir(...inputs: any[]): Promise<void> {
     }
   }
 }
+
+async function tree(...inputs: any[]): Promise<void> {
+  let args = inputs;
+  const maybeContext = args.slice(-1)[0];
+  if (maybeContext && typeof maybeContext === 'object' && !Array.isArray(maybeContext)) {
+    args = args.slice(0, -1);
+  }
+
+  let dirPath: string | undefined;
+  let maxDepth: number | null = null;
+  let directoriesOnly = false;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (typeof arg !== 'string') continue;
+
+    if (arg === '-d' || arg === '--directories') {
+      directoriesOnly = true;
+      continue;
+    }
+
+    if (arg === '-L' || arg === '--level') {
+      const nextArg = args[i + 1];
+      if (nextArg && typeof nextArg === 'string') {
+        const depth = parseInt(nextArg, 10);
+        if (!isNaN(depth) && depth > 0) {
+          maxDepth = depth;
+          i++;
+          continue;
+        }
+      }
+      error(formatError('Invalid depth value for -L option'));
+      return;
+    }
+
+    if (!dirPath && !arg.startsWith('-')) {
+      dirPath = arg;
+    }
+  }
+
+  try {
+    const targetPath = dirPath ? path.resolve(dirPath) : process.cwd();
+    const realDir = await resolveDirPath(targetPath);
+
+    const stats = await fs.stat(realDir);
+    if (!stats.isDirectory()) {
+      error(formatError('Path is not a directory.'));
+      return;
+    }
+
+    const treeLines: string[] = [chalk.cyan(dirPath || '.')];
+    await buildTree(realDir, '', true, maxDepth, 0, directoriesOnly, treeLines);
+
+    for (const line of treeLines) {
+      info(line);
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && 'code' in err) {
+      const errorWithCode = err as Error & { code: string };
+      if (errorWithCode.code === 'ENOENT') {
+        error(formatError('Directory does not exist.'));
+      } else if (errorWithCode.code === 'EACCES') {
+        error(formatError('Permission denied.'));
+      } else if (errorWithCode.code === 'EOUTSIDE') {
+        error(formatError('Operation outside allowed directory.'));
+      } else {
+        error(formatError(`Error displaying tree: ${errorWithCode.message}`));
+      }
+    } else {
+      error(
+        formatError(
+          `Error displaying tree: ${err instanceof Error ? err.message : String(err)}`
+        )
+      );
+    }
+  }
+}
+
+async function buildTree(
+  dirPath: string,
+  prefix: string,
+  _isLast: boolean,
+  maxDepth: number | null,
+  currentDepth: number,
+  directoriesOnly: boolean,
+  output: string[]
+): Promise<void> {
+  if (maxDepth !== null && currentDepth >= maxDepth) {
+    return;
+  }
+
+  try {
+    const items = await readDir(dirPath);
+
+    const itemsWithTypes = await Promise.all(
+      items.map(async (item: string) => {
+        const fullPath = path.join(dirPath, item);
+        const isDir = await isDirectory(fullPath);
+        return { name: item, isDir, fullPath };
+      })
+    );
+
+    const filteredItems = directoriesOnly
+      ? itemsWithTypes.filter((item) => item.isDir)
+      : itemsWithTypes;
+
+    filteredItems.sort((a, b) => {
+      if (a.isDir && !b.isDir) return -1;
+      if (!a.isDir && b.isDir) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    for (let i = 0; i < filteredItems.length; i++) {
+      const item = filteredItems[i]!;
+      const isLastItem = i === filteredItems.length - 1;
+      const connector = isLastItem ? '└── ' : '├── ';
+      const itemPrefix = prefix + connector;
+
+      const displayName = item.isDir
+        ? chalk.blue(item.name + '/')
+        : chalk.white(item.name);
+
+      output.push(itemPrefix + displayName);
+
+      if (item.isDir) {
+        const newPrefix = prefix + (isLastItem ? '    ' : '│   ');
+        await buildTree(
+          item.fullPath,
+          newPrefix,
+          isLastItem,
+          maxDepth,
+          currentDepth + 1,
+          directoriesOnly,
+          output
+        );
+      }
+    }
+  } catch (err: unknown) {
+    return;
+  }
+}
+
+export { ls, mkdir, rmdir, tree };

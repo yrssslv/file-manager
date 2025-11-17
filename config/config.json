@@ -7,6 +7,10 @@
     "type": "meta",
     "description": "Usage: exit - Exit the app"
   },
+  "clear": {
+    "type": "meta",
+    "description": "Usage: clear - Clear terminal screen"
+  },
   "pwd": {
     "type": "navigation",
     "description": "Usage: pwd - Show current directory"
@@ -39,6 +43,10 @@
     "type": "directory",
     "description": "Usage: rmdir <dir> [-r|--recursive] [-y|--yes] - Delete folder (confirm recursive unless --yes)"
   },
+  "tree": {
+    "type": "directory",
+    "description": "Usage: tree [dir] [-d] [-L depth] - Display directory tree structure"
+  },
   "cp": {
     "type": "file",
     "description": "Usage: cp <src> <dest> - Copy file"
@@ -46,5 +54,9 @@
   "mv": {
     "type": "file",
     "description": "Usage: mv <src> <dest> - Move or rename file"
+  },
+  "echo": {
+    "type": "file",
+    "description": "Usage: echo <text> [> file] [-e] - Print text or write to file"
   }
 }

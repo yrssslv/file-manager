@@ -183,4 +183,62 @@ async function mv(srcPath: string, destPath: string): Promise<void> {
   }
 }
 
-export { cat, touch, rm, cp, mv };
+async function echo(...args: string[]): Promise<void> {
+  const actualArgs = args.filter(
+    (arg) =>
+      typeof arg === 'string' || typeof arg === 'number' || typeof arg === 'boolean'
+  );
+
+  if (actualArgs.length === 0) {
+    console.log('');
+    return;
+  }
+
+  const redirectIndex = actualArgs.findIndex((arg) => arg === '>');
+
+  if (redirectIndex !== -1) {
+    const textParts = actualArgs.slice(0, redirectIndex);
+    const filePath = actualArgs[redirectIndex + 1];
+
+    if (!filePath) {
+      error(formatError('No file specified for output redirection.'));
+      return;
+    }
+
+    const text = textParts.join(' ');
+
+    try {
+      const resolved = await resolveWithinRoot(filePath, {
+        allowNonexistent: true,
+      });
+      ensureInsideRoot(resolved);
+
+      await fs.writeFile(resolved, text + '\n', 'utf-8');
+      info(`Text written to file: ${filePath}`);
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
+        error(formatError('Access outside the allowed root directory is not permitted.'));
+        return;
+      }
+      error(formatError('Error writing to file', err));
+    }
+  } else {
+    const text = actualArgs.join(' ');
+
+    const hasEscapeFlag = actualArgs.includes('-e');
+
+    if (hasEscapeFlag) {
+      const textWithoutFlag = actualArgs.filter((arg) => arg !== '-e').join(' ');
+      const processed = textWithoutFlag
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\r/g, '\r')
+        .replace(/\\\\/g, '\\');
+      console.log(processed);
+    } else {
+      console.log(text);
+    }
+  }
+}
+
+export { cat, touch, rm, cp, mv, echo };

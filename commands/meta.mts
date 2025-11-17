@@ -88,4 +88,8 @@ function exit(context: { rl?: { close(): void } }): void {
   }
 }
 
-export { help, exit };
+function clear(): void {
+  console.clear();
+}
+
+export { help, exit, clear };
