@@ -175,8 +175,33 @@ Type **`help`** to display all available commands with descriptions.
       <td><code>mv &lt;source&gt; &lt;destination&gt;</code></td>
       <td>Move or rename a file</td>
     </tr>
+    <tr>
+      <td><strong>clear</strong></td>
+      <td><code>clear</code></td>
+      <td>Clear the terminal screen</td>
+    </tr>
+    <tr>
+      <td><strong>echo</strong></td>
+      <td><code>echo [text] [options]</code></td>
+      <td>Print text to console or redirect to file</td>
+    </tr>
+    <tr>
+      <td><strong>tree</strong></td>
+      <td><code>tree [directory] [options]</code></td>
+      <td>Display directory structure in tree format</td>
+    </tr>
   </tbody>
 </table>
+
+### echo Options
+
+- **`-e`** — Process escape sequences (e.g., `\n` for newline, `\t` for tab)
+- **`> file`** — Redirect output to a file (overwrites existing content)
+
+### tree Options
+
+- **`-d, --directories`** — Show only directories, exclude files
+- **`-L <depth>, --level <depth>`** — Limit the depth of directory traversal
 
 ### rmdir Options
 
@@ -191,6 +216,14 @@ fm> mkdir projects
 fm> cd projects
 fm> touch README.md
 fm> cat README.md
+fm> echo "Hello, World!"
+fm> echo -e "Line 1\nLine 2\nLine 3"
+fm> echo "Save this to file" > output.txt
+fm> clear
+fm> tree
+fm> tree -d
+fm> tree -L 2
+fm> tree commands
 fm> cp file.txt backup.txt
 fm> mv old-name.txt new-name.txt
 fm> rmdir old-folder -r --yes
@@ -292,9 +325,9 @@ file-manager/
 ├── bin/
 │   └── fm.mjs               # Global CLI executable wrapper
 ├── commands/
-│   ├── dir.mts              # Directory operations (ls, mkdir, rmdir)
-│   ├── file.mts             # File operations (cat, touch, rm, cp, mv)
-│   ├── meta.mts             # Meta commands (help, exit)
+│   ├── dir.mts              # Directory operations (ls, mkdir, rmdir, tree)
+│   ├── file.mts             # File operations (cat, touch, rm, cp, mv, echo)
+│   ├── meta.mts             # Meta commands (help, exit, clear)
 │   ├── navigation.mts       # Navigation commands (pwd, cd)
 │   └── index.mts            # Command exports
 ├── config/
@@ -304,6 +337,7 @@ file-manager/
 │   ├── format.mts           # Output formatting utilities
 │   ├── fs-utils.mts         # Safe filesystem operations
 │   ├── logger.mts           # Logging with level support
+│   ├── tokenizer.mts        # Command line argument parser
 │   └── index.mts            # Utility exports
 ├── tests/
 │   ├── smoke/               # End-to-end smoke tests
