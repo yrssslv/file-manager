@@ -1,12 +1,5 @@
 {
   "protectedPaths": [
-    "src",
-    "tests",
-    "node_modules",
-    "dist",
-    "build",
-    ".git",
-    ".vscode",
     "package.json",
     "package-lock.json",
     "tsconfig.json",
@@ -16,11 +9,35 @@
     "start.bat",
     "start.sh",
     ".gitignore",
+    ".gitattributes",
+    ".npmignore",
     ".npmrc",
     ".editorconfig",
     ".prettierrc",
+    ".prettierrc.json",
+    ".prettierignore",
+    ".eslintrc",
+    ".eslintrc.js",
+    ".eslintrc.json",
+    ".eslintignore",
+    ".dockerignore",
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".env.development",
+    ".env.test",
     "README.md",
-    "src/config/config.json",
-    "src/config/protection.json"
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
+  ],
+  "protectedDirectories": [
+    "src",
+    "tests",
+    "node_modules",
+    "dist",
+    "build",
+    ".git",
+    ".vscode"
   ]
 }

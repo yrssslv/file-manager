@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import {
   isFile,
   exists,
@@ -10,6 +11,7 @@ import {
   ensureNotProtected,
   safeWriteFile,
   safeRename,
+  ensureNotProtectedDirectory,
 } from '../utils/fs-utils.mjs';
 import { info, error } from '../utils/logger.mjs';
 import { formatError } from '../utils/format.mjs';
@@ -22,6 +24,10 @@ async function cat(filePath: string): Promise<void> {
   try {
     const resolved = await resolveWithinRoot(filePath);
     ensureInsideRoot(resolved);
+
+    const parentDir = path.dirname(resolved);
+    await ensureNotProtectedDirectory(parentDir);
+
     if (!(await exists(resolved))) {
       error(formatError('File not found.'));
       return;
@@ -37,9 +43,15 @@ async function cat(filePath: string): Promise<void> {
     const content = await fs.readFile(resolved, 'utf-8');
     info(content);
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
-      error(formatError('Access outside the allowed root directory is not permitted.'));
-      return;
+    if (err instanceof Error && 'code' in err) {
+      if (err.code === 'EOUTSIDE') {
+        error(formatError('Access outside the allowed root directory is not permitted.'));
+        return;
+      }
+      if (err.code === 'EPROTECTED_DIR') {
+        error(formatError(err.message));
+        return;
+      }
     }
     error(formatError('Error reading file', err));
   }
@@ -244,6 +256,10 @@ async function echo(...args: string[]): Promise<void> {
         allowNonexistent: true,
       });
       ensureInsideRoot(resolved);
+
+      const parentDir = path.dirname(resolved);
+      await ensureNotProtectedDirectory(parentDir);
+
       await ensureNotProtected(resolved);
 
       await safeWriteFile(resolved, text + '\n');
@@ -258,6 +274,10 @@ async function echo(...args: string[]): Promise<void> {
         }
         if (err.code === 'EPROTECTED') {
           error(formatError('Cannot overwrite protected application files.'));
+          return;
+        }
+        if (err.code === 'EPROTECTED_DIR') {
+          error(formatError(err.message));
           return;
         }
       }

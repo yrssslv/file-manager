@@ -8,6 +8,7 @@ import {
   resolveWithinRoot,
   ensureInsideRoot,
   ensureNotProtected,
+  ensureNotProtectedDirectory,
 } from '../utils/fs-utils.mjs';
 import { formatList, formatError } from '../utils/format.mjs';
 import { info, error } from '../utils/logger.mjs';
@@ -35,6 +36,8 @@ async function ls(p: string = ROOT_DIR): Promise<void> {
     if (isArgEmpty(p)) p = ROOT_DIR;
     const candidate = path.resolve(p);
     const realDir = await resolveDirPath(candidate);
+
+    await ensureNotProtectedDirectory(realDir);
 
     const stats = await fs.stat(realDir);
     if (!stats.isDirectory()) {

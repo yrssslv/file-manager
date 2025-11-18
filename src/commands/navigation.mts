@@ -1,7 +1,11 @@
 import path from 'node:path';
 import { info, error as logError } from '../utils/logger.mjs';
 import { formatError } from '../utils/format.mjs';
-import { resolveWithinRoot, ensureInsideRoot } from '../utils/fs-utils.mjs';
+import {
+  resolveWithinRoot,
+  ensureInsideRoot,
+  ensureNotProtectedDirectory,
+} from '../utils/fs-utils.mjs';
 
 function pwd(): void {
   const currentDir = process.cwd();
@@ -25,6 +29,7 @@ async function cd(p: string): Promise<void> {
       );
       return;
     }
+    await ensureNotProtectedDirectory(realTarget);
     process.chdir(realTarget);
     pwd();
   } catch (err: unknown) {
@@ -41,6 +46,8 @@ async function cd(p: string): Promise<void> {
             'Access denied: Cannot navigate outside the allowed root directory.'
           )
         );
+      } else if (err.code === 'EPROTECTED_DIR') {
+        logError(formatError(err.message));
       } else {
         logError(formatError(`Error changing directory: ${err.message}`));
       }

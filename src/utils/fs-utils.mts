@@ -8,6 +8,7 @@ import {
 
 interface ProtectionConfig {
   protectedPaths: string[];
+  protectedDirectories: string[];
 }
 
 let protectionConfig: ProtectionConfig | null = null;
@@ -22,7 +23,7 @@ async function loadProtectionConfig(): Promise<ProtectionConfig> {
     protectionConfig = JSON.parse(content);
     return protectionConfig!;
   } catch {
-    protectionConfig = { protectedPaths: [] };
+    protectionConfig = { protectedPaths: [], protectedDirectories: [] };
     return protectionConfig;
   }
 }
@@ -83,6 +84,16 @@ export async function isProtectedPath(targetPath: string): Promise<boolean> {
     }
 
     const normalizedRelPath = relativePath.replace(/\\/g, '/');
+    const pathParts = normalizedRelPath.split('/');
+    const firstPart = pathParts[0];
+
+    for (const protectedDir of config.protectedDirectories) {
+      const normalizedDir = protectedDir.replace(/\\/g, '/');
+
+      if (firstPart === normalizedDir) {
+        return true;
+      }
+    }
 
     for (const protectedPath of config.protectedPaths) {
       const normalizedProtected = protectedPath.replace(/\\/g, '/');
@@ -102,12 +113,69 @@ export async function isProtectedPath(targetPath: string): Promise<boolean> {
   }
 }
 
+export async function isProtectedDirectory(targetPath: string): Promise<boolean> {
+  try {
+    const config = await loadProtectionConfig();
+    const appRoot = await getAppRootReal();
+    const absoluteTarget = path.resolve(targetPath);
+
+    let realTarget: string;
+    try {
+      realTarget = await fs.realpath(absoluteTarget);
+    } catch {
+      realTarget = absoluteTarget;
+    }
+
+    const normalizedAppRoot = normalizePathForComparison(appRoot);
+    const normalizedTarget = normalizePathForComparison(realTarget);
+
+    if (normalizedTarget === normalizedAppRoot) {
+      return false;
+    }
+
+    if (!normalizedTarget.startsWith(normalizedAppRoot + '/')) {
+      return false;
+    }
+
+    const relativePath = path.relative(appRoot, realTarget);
+    if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      return false;
+    }
+
+    const normalizedRelPath = relativePath.replace(/\\/g, '/');
+    const pathParts = normalizedRelPath.split('/');
+    const firstPart = pathParts[0];
+
+    for (const protectedDir of config.protectedDirectories) {
+      const normalizedDir = protectedDir.replace(/\\/g, '/');
+      if (firstPart === normalizedDir) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export async function ensureNotProtected(targetPath: string): Promise<void> {
   const isProtected = await isProtectedPath(targetPath);
   if (isProtected) {
     const protectedErr = Object.assign(
       new Error('Cannot modify protected application files or directories.'),
       { code: 'EPROTECTED' as const }
+    );
+    throw protectedErr;
+  }
+}
+
+export async function ensureNotProtectedDirectory(targetPath: string): Promise<void> {
+  const isProtected = await isProtectedDirectory(targetPath);
+  if (isProtected) {
+    const protectedErr = Object.assign(
+      new Error('Access denied: Cannot access protected application directories.'),
+      { code: 'EPROTECTED_DIR' as const }
     );
     throw protectedErr;
   }
