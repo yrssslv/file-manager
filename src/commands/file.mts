@@ -7,7 +7,9 @@ import {
   isDirectory,
   resolveWithinRoot,
   ensureInsideRoot,
-  isProtectedPath,
+  ensureNotProtected,
+  safeWriteFile,
+  safeRename,
 } from '../utils/fs-utils.mjs';
 import { info, error } from '../utils/logger.mjs';
 import { formatError } from '../utils/format.mjs';
@@ -57,12 +59,19 @@ async function touch(filePath: string): Promise<void> {
       error(formatError('File already exists.'));
       return;
     }
-    await fs.writeFile(resolved, '');
+    await ensureNotProtected(resolved);
+    await safeWriteFile(resolved, '');
     info('File created successfully.');
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
-      error(formatError('Access outside the allowed root directory is not permitted.'));
-      return;
+    if (err instanceof Error && 'code' in err) {
+      if (err.code === 'EOUTSIDE') {
+        error(formatError('Access outside the allowed root directory is not permitted.'));
+        return;
+      }
+      if (err.code === 'EPROTECTED') {
+        error(formatError('Cannot create files in protected directories.'));
+        return;
+      }
     }
     error(formatError('Error creating file', err));
   }
@@ -88,10 +97,7 @@ async function rm(filePath: string): Promise<void> {
       error(formatError('The specified path is not a file.'));
       return;
     }
-    if (isProtectedPath(resolved)) {
-      error(formatError('Cannot delete protected application files.'));
-      return;
-    }
+    await ensureNotProtected(resolved);
     const res: { success: boolean; error?: Error } = await safeUnlink(resolved);
     if (res.success) {
       info('File deleted successfully.');
@@ -100,9 +106,15 @@ async function rm(filePath: string): Promise<void> {
       error(formatError(`Error deleting file: ${msg}`));
     }
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
-      error(formatError('Access outside the allowed root directory is not permitted.'));
-      return;
+    if (err instanceof Error && 'code' in err) {
+      if (err.code === 'EOUTSIDE') {
+        error(formatError('Access outside the allowed root directory is not permitted.'));
+        return;
+      }
+      if (err.code === 'EPROTECTED') {
+        error(formatError('Cannot delete protected application files.'));
+        return;
+      }
     }
     error(formatError('Error deleting file', err));
   }
@@ -137,12 +149,19 @@ async function cp(srcPath: string, destPath: string): Promise<void> {
       error(formatError('Destination file already exists.'));
       return;
     }
+    await ensureNotProtected(resolvedDest);
     await copyFile(resolvedSrc, resolvedDest);
     info('File copied successfully.');
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
-      error(formatError('Access outside the allowed root directory is not permitted.'));
-      return;
+    if (err instanceof Error && 'code' in err) {
+      if (err.code === 'EOUTSIDE') {
+        error(formatError('Access outside the allowed root directory is not permitted.'));
+        return;
+      }
+      if (err.code === 'EPROTECTED') {
+        error(formatError('Cannot overwrite protected application files.'));
+        return;
+      }
     }
     error(formatError('Error copying file', err));
   }
@@ -173,20 +192,24 @@ async function mv(srcPath: string, destPath: string): Promise<void> {
       error(formatError('Source path is not a file.'));
       return;
     }
-    if (isProtectedPath(resolvedSrc)) {
-      error(formatError('Cannot move protected application files.'));
-      return;
-    }
+    await ensureNotProtected(resolvedSrc);
     if (await exists(resolvedDest)) {
       error(formatError('Destination file already exists.'));
       return;
     }
-    await fs.rename(resolvedSrc, resolvedDest);
+    await ensureNotProtected(resolvedDest);
+    await safeRename(resolvedSrc, resolvedDest);
     info('File moved successfully.');
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
-      error(formatError('Access outside the allowed root directory is not permitted.'));
-      return;
+    if (err instanceof Error && 'code' in err) {
+      if (err.code === 'EOUTSIDE') {
+        error(formatError('Access outside the allowed root directory is not permitted.'));
+        return;
+      }
+      if (err.code === 'EPROTECTED') {
+        error(formatError('Cannot move protected application files.'));
+        return;
+      }
     }
     error(formatError('Error moving file', err));
   }
@@ -221,13 +244,22 @@ async function echo(...args: string[]): Promise<void> {
         allowNonexistent: true,
       });
       ensureInsideRoot(resolved);
+      await ensureNotProtected(resolved);
 
-      await fs.writeFile(resolved, text + '\n', 'utf-8');
+      await safeWriteFile(resolved, text + '\n');
       info(`Text written to file: ${filePath}`);
     } catch (err: unknown) {
-      if (err instanceof Error && 'code' in err && err.code === 'EOUTSIDE') {
-        error(formatError('Access outside the allowed root directory is not permitted.'));
-        return;
+      if (err instanceof Error && 'code' in err) {
+        if (err.code === 'EOUTSIDE') {
+          error(
+            formatError('Access outside the allowed root directory is not permitted.')
+          );
+          return;
+        }
+        if (err.code === 'EPROTECTED') {
+          error(formatError('Cannot overwrite protected application files.'));
+          return;
+        }
       }
       error(formatError('Error writing to file', err));
     }

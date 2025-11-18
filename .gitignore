@@ -26,3 +26,7 @@ Thumbs.db
 coverage/
 
 build/
+*.exe
+file-manager-win.exe
+file-manager-linux
+file-manager-macos

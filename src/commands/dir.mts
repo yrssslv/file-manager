@@ -7,7 +7,7 @@ import {
   safeRmdir,
   resolveWithinRoot,
   ensureInsideRoot,
-  isProtectedPath,
+  ensureNotProtected,
 } from '../utils/fs-utils.mjs';
 import { formatList, formatError } from '../utils/format.mjs';
 import { info, error } from '../utils/logger.mjs';
@@ -89,6 +89,7 @@ async function mkdir(dirPath: string, context: any): Promise<void> {
     }
     const candidate = path.resolve(dirPath);
     const safeTarget = await resolveDirPath(candidate, { mayNotExist: true });
+    await ensureNotProtected(safeTarget);
     await fs.mkdir(safeTarget, { recursive: true });
     info(`Directory created: ${dirPath}`);
   } catch (err: unknown) {
@@ -100,6 +101,8 @@ async function mkdir(dirPath: string, context: any): Promise<void> {
         error(formatError('Permission denied.'));
       } else if (errorWithCode.code === 'EOUTSIDE') {
         error(formatError('Operation outside allowed directory.'));
+      } else if (errorWithCode.code === 'EPROTECTED') {
+        error(formatError('Cannot create directories in protected locations.'));
       } else {
         error(formatError(`Error creating directory: ${errorWithCode.message}`));
       }
@@ -156,12 +159,10 @@ async function rmdir(...inputs: any[]): Promise<void> {
     const targetPath = path.resolve(dirPath);
     const realTarget = await resolveDirPath(targetPath);
 
-    if (isProtectedPath(realTarget)) {
-      error(formatError('Cannot delete protected application directories.'));
-      return;
-    }
+    await ensureNotProtected(realTarget);
 
     if (!recursive) {
+      await ensureNotProtected(realTarget);
       await fs.rm(realTarget, { recursive: false, force: false });
       info(`Directory removed: ${dirPath}`);
       return;
@@ -203,6 +204,8 @@ async function rmdir(...inputs: any[]): Promise<void> {
         error(formatError('Permission denied.'));
       } else if (errorWithCode.code === 'EOUTSIDE') {
         error(formatError('Operation outside allowed directory.'));
+      } else if (errorWithCode.code === 'EPROTECTED') {
+        error(formatError('Cannot delete protected application directories.'));
       } else {
         error(formatError(`Error removing directory: ${errorWithCode.message}`));
       }

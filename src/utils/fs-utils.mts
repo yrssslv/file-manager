@@ -1,31 +1,132 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { ALLOWED_ROOT_DIR, RESOLVED_ALLOWED_ROOT_DIR } from './constants.mjs';
+import {
+  ALLOWED_ROOT_DIR,
+  RESOLVED_ALLOWED_ROOT_DIR,
+  APP_ROOT_DIR,
+} from './constants.mjs';
 
-const APP_PROTECTED_DIRS = ['src', 'bin', 'tests', 'node_modules'];
-const APP_PROTECTED_FILES = ['package.json', 'tsconfig.json', 'eslint.config.mjs', 'README.md'];
+const APP_PROTECTED_DIRS = ['src', 'tests', 'node_modules', 'dist'];
+const APP_PROTECTED_FILES = [
+  'package.json',
+  'tsconfig.json',
+  'eslint.config.mjs',
+  'README.md',
+  'start.bat',
+];
 
-export function isProtectedPath(targetPath: string): boolean {
-  const rootDir = RESOLVED_ALLOWED_ROOT_DIR;
-  const resolvedTarget = path.resolve(targetPath);
-  const relativePath = path.relative(rootDir, resolvedTarget);
+let cachedAppRootReal: string | null = null;
 
-  if (!relativePath || relativePath.startsWith('..')) {
+async function getAppRootReal(): Promise<string> {
+  if (cachedAppRootReal) {
+    return cachedAppRootReal;
+  }
+  try {
+    cachedAppRootReal = await fs.realpath(APP_ROOT_DIR);
+    return cachedAppRootReal;
+  } catch {
+    cachedAppRootReal = path.resolve(APP_ROOT_DIR);
+    return cachedAppRootReal;
+  }
+}
+
+function normalizePathForComparison(p: string): string {
+  return p.toLowerCase().replace(/\\/g, '/');
+}
+
+export async function isProtectedPath(targetPath: string): Promise<boolean> {
+  try {
+    const appRoot = await getAppRootReal();
+    const absoluteTarget = path.resolve(targetPath);
+
+    let realTarget: string;
+    try {
+      realTarget = await fs.realpath(absoluteTarget);
+    } catch {
+      const parentDir = path.dirname(absoluteTarget);
+      try {
+        const realParent = await fs.realpath(parentDir);
+        realTarget = path.join(realParent, path.basename(absoluteTarget));
+      } catch {
+        realTarget = absoluteTarget;
+      }
+    }
+
+    const normalizedAppRoot = normalizePathForComparison(appRoot);
+    const normalizedTarget = normalizePathForComparison(realTarget);
+
+    if (normalizedTarget === normalizedAppRoot) {
+      return true;
+    }
+
+    if (!normalizedTarget.startsWith(normalizedAppRoot + '/')) {
+      return false;
+    }
+
+    const relativePath = path.relative(appRoot, realTarget);
+
+    if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      return false;
+    }
+
+    const normalizedRelPath = relativePath.replace(/\\/g, '/');
+    const parts = normalizedRelPath.split('/');
+    const firstPart = parts[0];
+
+    if (APP_PROTECTED_DIRS.includes(firstPart || '')) {
+      return true;
+    }
+
+    if (parts.length === 1 && APP_PROTECTED_FILES.includes(firstPart || '')) {
+      return true;
+    }
+
+    const lowerRelPath = normalizedRelPath.toLowerCase();
+    for (const fileName of APP_PROTECTED_FILES) {
+      const lowerFileName = fileName.toLowerCase();
+      if (lowerRelPath === lowerFileName || lowerRelPath.endsWith('/' + lowerFileName)) {
+        return true;
+      }
+    }
+
     return false;
-  }
+  } catch (err) {
+    const pathStr = String(targetPath).toLowerCase().replace(/\\/g, '/');
 
-  const parts = relativePath.split(path.sep);
-  const firstPart = parts[0];
+    for (const dir of APP_PROTECTED_DIRS) {
+      if (
+        pathStr.includes('/' + dir + '/') ||
+        pathStr.startsWith(dir + '/') ||
+        pathStr.includes('/' + dir)
+      ) {
+        return true;
+      }
+    }
 
-  if (APP_PROTECTED_DIRS.includes(firstPart || '')) {
+    for (const file of APP_PROTECTED_FILES) {
+      const lowerFile = file.toLowerCase();
+      if (
+        pathStr.endsWith('/' + lowerFile) ||
+        pathStr.endsWith(lowerFile) ||
+        pathStr.includes('/' + lowerFile)
+      ) {
+        return true;
+      }
+    }
+
     return true;
   }
+}
 
-  if (parts.length === 1 && APP_PROTECTED_FILES.includes(firstPart || '')) {
-    return true;
+export async function ensureNotProtected(targetPath: string): Promise<void> {
+  const isProtected = await isProtectedPath(targetPath);
+  if (isProtected) {
+    const protectedErr = Object.assign(
+      new Error('Cannot modify protected application files or directories.'),
+      { code: 'EPROTECTED' as const }
+    );
+    throw protectedErr;
   }
-
-  return false;
 }
 
 function validatePath(p: unknown): void {
@@ -67,12 +168,7 @@ export async function safeUnlink(
 ): Promise<{ success: boolean; error?: Error }> {
   try {
     validatePath(filePath);
-    if (isProtectedPath(filePath)) {
-      return {
-        success: false,
-        error: new Error('Cannot delete protected application files'),
-      };
-    }
+    await ensureNotProtected(filePath);
     await fs.unlink(filePath);
     return { success: true };
   } catch (error: unknown) {
@@ -89,12 +185,19 @@ export async function safeRmdir(
 ): Promise<{ success: boolean; error?: Error }> {
   try {
     validatePath(dirPath);
-    if (isProtectedPath(dirPath)) {
-      return {
-        success: false,
-        error: new Error('Cannot delete protected application directories'),
-      };
+    await ensureNotProtected(dirPath);
+
+    if (options.recursive) {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        await ensureNotProtected(fullPath);
+        if (entry.isDirectory()) {
+          await ensureNotProtected(fullPath);
+        }
+      }
     }
+
     const { recursive = false, force = false } = options;
     await fs.rm(dirPath, { recursive, force });
     return { success: true };
@@ -109,7 +212,22 @@ export async function safeRmdir(
 export async function copyFile(src: string, dest: string): Promise<void> {
   validatePath(src);
   validatePath(dest);
+  await ensureNotProtected(dest);
   await fs.copyFile(src, dest);
+}
+
+export async function safeWriteFile(filePath: string, content: string): Promise<void> {
+  validatePath(filePath);
+  await ensureNotProtected(filePath);
+  await fs.writeFile(filePath, content, 'utf-8');
+}
+
+export async function safeRename(oldPath: string, newPath: string): Promise<void> {
+  validatePath(oldPath);
+  validatePath(newPath);
+  await ensureNotProtected(oldPath);
+  await ensureNotProtected(newPath);
+  await fs.rename(oldPath, newPath);
 }
 
 export async function copyDir(
@@ -119,6 +237,7 @@ export async function copyDir(
   try {
     validatePath(src);
     validatePath(dest);
+    await ensureNotProtected(dest);
     await fs.mkdir(dest, { recursive: true });
     const entries = await fs.readdir(src, { withFileTypes: true });
     for (const entry of entries) {
@@ -130,6 +249,7 @@ export async function copyDir(
           return result;
         }
       } else {
+        await ensureNotProtected(destPath);
         await fs.copyFile(srcPath, destPath);
       }
     }

@@ -40,13 +40,54 @@ _All filesystem operations are sandboxed within a designated root directory for 
 
 ## Installation
 
-### Prerequisites
+### Standalone Executables (No Node.js Required)
 
-- **Node.js** version 18 or higher ([Download here](https://nodejs.org/))
+Download pre-built executables for your platform:
 
-### Setup
+1. Go to [Releases](https://github.com/yrssslv/file-manager/releases)
+2. Download for your OS:
+   - `file-manager-win.exe` for Windows
+   - `file-manager-linux` for Linux
+   - `file-manager-macos` for macOS
+3. Run the executable
 
-Clone the repository and install dependencies:
+**Windows:**
+
+```cmd
+file-manager-win.exe
+```
+
+**Linux/macOS:**
+
+```bash
+chmod +x file-manager-linux
+./file-manager-linux
+```
+
+### Build Executables Yourself
+
+Requires Node.js 18+
+
+**Windows:**
+
+```bash
+git clone https://github.com/yrssslv/file-manager.git
+cd file-manager
+build.bat
+```
+
+**Linux/macOS:**
+
+```bash
+git clone https://github.com/yrssslv/file-manager.git
+cd file-manager
+chmod +x build.sh
+./build.sh
+```
+
+Executables will be in the `build/` directory.
+
+### Development Setup
 
 ```bash
 git clone https://github.com/yrssslv/file-manager.git
@@ -55,43 +96,89 @@ npm install
 npm run build
 ```
 
----
-
 ## Usage
 
-### Quick Start
+### With Executables
 
-**Production Mode** — Build and run the compiled application:
+Run in any directory:
+
+**Windows:**
+
+```cmd
+file-manager-win.exe
+```
+
+**Linux/macOS:**
+
+```bash
+./file-manager-linux
+```
+
+### From Source
+
+**Production:**
 
 ```bash
 npm start
 ```
 
-**Windows Users** — Use the provided batch script for convenience:
+**Windows:**
 
 ```bash
 start.bat
 ```
 
-**Development Mode** — Run with automatic reload on file changes:
+**Development:**
 
 ```bash
 npm run dev
 ```
 
-### Global Installation
+### Custom Working Directory
 
-For system-wide access to the `fm` command:
+Set a custom working directory for file operations:
 
-```bash
-npm link
+**Windows:**
+
+```cmd
+set ALLOWED_ROOT_DIR=C:\path\to\directory
+file-manager-win.exe
 ```
 
-Then run from anywhere:
+**Linux/macOS:**
 
 ```bash
-fm
+export ALLOWED_ROOT_DIR=/path/to/directory
+./file-manager-linux
 ```
+
+---
+
+## Security & Requirements
+
+### Security Features
+
+- Sandboxed within `ALLOWED_ROOT_DIR`
+- Protected application files
+- Path validation
+- No network access
+
+### System Requirements
+
+- Windows 10+ (64-bit)
+- Linux modern (64-bit)
+- macOS 10.13+ (64-bit)
+
+### Troubleshooting Executables
+
+**Windows protection warning:**
+Click "More info" → "Run anyway"
+
+**Linux permission denied:**
+`chmod +x file-manager-linux`
+
+**macOS verification:**
+Right-click → Open → Confirm
 
 ---
 
@@ -346,8 +433,6 @@ file-manager/
 │   ├── smoke/               # End-to-end smoke tests
 │   ├── edge-cases/          # Edge case tests
 │   └── helpers/             # Test utilities and runners
-├── bin/                     # CLI entry point
-│   └── fm.mjs               # Global CLI executable wrapper
 ├── dist/                    # Compiled JavaScript output (generated)
 ├── tsconfig.json            # TypeScript compiler configuration
 ├── eslint.config.mjs        # ESLint flat configuration

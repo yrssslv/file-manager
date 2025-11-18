@@ -5,9 +5,6 @@
   "type": "module",
   "main": "./dist/app.mjs",
   "types": "./dist/app.d.mts",
-  "bin": {
-    "fm": "./bin/fm.mjs"
-  },
   "engines": {
     "node": ">=18"
   },
@@ -25,7 +22,12 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "clean": "powershell -Command \"Remove-Item -Path dist -Recurse -Force -ErrorAction SilentlyContinue\""
+    "clean": "powershell -Command \"Remove-Item -Path dist -Recurse -Force -ErrorAction SilentlyContinue\"",
+    "prebuild:exe": "npm run build",
+    "build:exe": "pkg dist/app.mjs --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output build/file-manager",
+    "build:exe:win": "pkg dist/app.mjs --targets node18-win-x64 --output build/file-manager-win.exe",
+    "build:exe:linux": "pkg dist/app.mjs --targets node18-linux-x64 --output build/file-manager-linux",
+    "build:exe:mac": "pkg dist/app.mjs --targets node18-macos-x64 --output build/file-manager-macos"
   },
   "keywords": [
     "file-manager",
@@ -37,7 +39,6 @@
   "license": "ISC",
   "files": [
     "dist/",
-    "bin/",
     "README.md"
   ],
   "dependencies": {
@@ -47,7 +48,15 @@
     "@eslint/js": "^9.14.0",
     "@types/node": "^24.10.0",
     "eslint": "^9.14.0",
+    "pkg": "^5.8.1",
     "prettier": "^3.3.3",
     "tsx": "^4.20.6"
+  },
+  "pkg": {
+    "assets": [
+      "dist/**/*",
+      "src/config/**/*"
+    ],
+    "outputPath": "build"
   }
 }
