@@ -7,6 +7,7 @@ import {
   safeRmdir,
   resolveWithinRoot,
   ensureInsideRoot,
+  isProtectedPath,
 } from '../utils/fs-utils.mjs';
 import { formatList, formatError } from '../utils/format.mjs';
 import { info, error } from '../utils/logger.mjs';
@@ -154,6 +155,11 @@ async function rmdir(...inputs: any[]): Promise<void> {
     }
     const targetPath = path.resolve(dirPath);
     const realTarget = await resolveDirPath(targetPath);
+
+    if (isProtectedPath(realTarget)) {
+      error(formatError('Cannot delete protected application directories.'));
+      return;
+    }
 
     if (!recursive) {
       await fs.rm(realTarget, { recursive: false, force: false });

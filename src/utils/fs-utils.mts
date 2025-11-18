@@ -2,6 +2,32 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ALLOWED_ROOT_DIR, RESOLVED_ALLOWED_ROOT_DIR } from './constants.mjs';
 
+const APP_PROTECTED_DIRS = ['src', 'bin', 'tests', 'node_modules'];
+const APP_PROTECTED_FILES = ['package.json', 'tsconfig.json', 'eslint.config.mjs', 'README.md'];
+
+export function isProtectedPath(targetPath: string): boolean {
+  const rootDir = RESOLVED_ALLOWED_ROOT_DIR;
+  const resolvedTarget = path.resolve(targetPath);
+  const relativePath = path.relative(rootDir, resolvedTarget);
+
+  if (!relativePath || relativePath.startsWith('..')) {
+    return false;
+  }
+
+  const parts = relativePath.split(path.sep);
+  const firstPart = parts[0];
+
+  if (APP_PROTECTED_DIRS.includes(firstPart || '')) {
+    return true;
+  }
+
+  if (parts.length === 1 && APP_PROTECTED_FILES.includes(firstPart || '')) {
+    return true;
+  }
+
+  return false;
+}
+
 function validatePath(p: unknown): void {
   if (typeof p !== 'string' || p.trim() === '') {
     throw new Error('Invalid path: Path must be a non-empty string');
@@ -41,6 +67,12 @@ export async function safeUnlink(
 ): Promise<{ success: boolean; error?: Error }> {
   try {
     validatePath(filePath);
+    if (isProtectedPath(filePath)) {
+      return {
+        success: false,
+        error: new Error('Cannot delete protected application files'),
+      };
+    }
     await fs.unlink(filePath);
     return { success: true };
   } catch (error: unknown) {
@@ -57,6 +89,12 @@ export async function safeRmdir(
 ): Promise<{ success: boolean; error?: Error }> {
   try {
     validatePath(dirPath);
+    if (isProtectedPath(dirPath)) {
+      return {
+        success: false,
+        error: new Error('Cannot delete protected application directories'),
+      };
+    }
     const { recursive = false, force = false } = options;
     await fs.rm(dirPath, { recursive, force });
     return { success: true };

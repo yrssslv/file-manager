@@ -7,6 +7,7 @@ import {
   isDirectory,
   resolveWithinRoot,
   ensureInsideRoot,
+  isProtectedPath,
 } from '../utils/fs-utils.mjs';
 import { info, error } from '../utils/logger.mjs';
 import { formatError } from '../utils/format.mjs';
@@ -85,6 +86,10 @@ async function rm(filePath: string): Promise<void> {
     }
     if (!(await isFile(resolved))) {
       error(formatError('The specified path is not a file.'));
+      return;
+    }
+    if (isProtectedPath(resolved)) {
+      error(formatError('Cannot delete protected application files.'));
       return;
     }
     const res: { success: boolean; error?: Error } = await safeUnlink(resolved);
@@ -166,6 +171,10 @@ async function mv(srcPath: string, destPath: string): Promise<void> {
     }
     if (!(await isFile(resolvedSrc))) {
       error(formatError('Source path is not a file.'));
+      return;
+    }
+    if (isProtectedPath(resolvedSrc)) {
+      error(formatError('Cannot move protected application files.'));
       return;
     }
     if (await exists(resolvedDest)) {

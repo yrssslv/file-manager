@@ -1,9 +1,5 @@
 import type readline from 'readline';
 
-// ============================================================================
-// Legacy Types (для обратной совместимости)
-// ============================================================================
-
 export type TokenType = 'argument' | 'flag' | 'option';
 
 export type Token = {
@@ -21,9 +17,6 @@ export type CommandConfig = {
 
 export type Config = Record<string, CommandConfig>;
 
-/**
- * @deprecated Use PluginContext from plugins/types.mts instead
- */
 export type CommandContext = {
   rl: readline.Interface;
   config: Config;
@@ -36,19 +29,9 @@ export type FSOperationResult = {
   error?: Error;
 };
 
-/**
- * @deprecated Use Plugin interface from plugins/types.mts instead
- */
 export type CommandHandler = (...args: any[]) => Promise<void> | void;
 
-/**
- * @deprecated Use PluginRegistry instead
- */
 export type CommandRegistry = Record<string, CommandHandler>;
-
-// ============================================================================
-// Re-export Plugin Types для удобства
-// ============================================================================
 
 export type {
   Plugin,
