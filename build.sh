@@ -1,9 +1,12 @@
 #!/bin/bash
 
-echo "Building File Manager Executables"
-echo ""
+set -e
 
-rm -rf build
+echo "Building File Manager Executables"
+
+if [ -d "build" ]; then
+    rm -rf build
+fi
 mkdir -p build
 
 echo "Installing dependencies..."
@@ -11,20 +14,12 @@ npm install
 
 echo "Compiling TypeScript..."
 npm run build
-if [ $? -ne 0 ]; then
-    echo "Build failed!"
-    exit 1
-fi
 
 echo "Creating executables..."
 npm run build:exe
-if [ $? -ne 0 ]; then
-    echo "Executable creation failed!"
-    exit 1
-fi
 
-echo ""
-echo "Build completed successfully!"
-echo ""
+echo "Build completed"
 ls -lh build/
-echo ""
+
+chmod +x build/file-manager-linux 2>/dev/null || true
+chmod +x build/file-manager-macos 2>/dev/null || true

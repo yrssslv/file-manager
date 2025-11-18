@@ -7,6 +7,7 @@ import {
   exists,
   isFile,
   isDirectory,
+  ensureNotProtected,
 } from '../utils/fs-utils.mjs';
 
 export class SafeFs implements SafeFsOperations {
@@ -50,6 +51,7 @@ export class SafeFs implements SafeFsOperations {
 
   async writeFile(p: string, content: string): Promise<void> {
     const resolved = await this.resolveSafePath(p, { allowNonexistent: true });
+    await ensureNotProtected(resolved);
     await fs.writeFile(resolved, content, 'utf-8');
   }
 
@@ -60,11 +62,13 @@ export class SafeFs implements SafeFsOperations {
       throw new Error('Path is not a file');
     }
 
+    await ensureNotProtected(resolved);
     await fs.unlink(resolved);
   }
 
   async mkdir(p: string, options?: { recursive?: boolean }): Promise<void> {
     const resolved = await this.resolveSafePath(p, { allowNonexistent: true });
+    await ensureNotProtected(resolved);
     await fs.mkdir(resolved, { recursive: options?.recursive ?? false });
   }
 
@@ -75,6 +79,7 @@ export class SafeFs implements SafeFsOperations {
       throw new Error('Path is not a directory');
     }
 
+    await ensureNotProtected(resolved);
     await fs.rm(resolved, { recursive: options?.recursive ?? false, force: false });
   }
 
@@ -114,6 +119,7 @@ export class SafeFs implements SafeFsOperations {
       throw new Error('Source is not a file');
     }
 
+    await ensureNotProtected(resolvedDest);
     await fs.copyFile(resolvedSource, resolvedDest);
   }
 
@@ -121,6 +127,8 @@ export class SafeFs implements SafeFsOperations {
     const resolvedOld = await this.resolveSafePath(oldPath);
     const resolvedNew = await this.resolveSafePath(newPath, { allowNonexistent: true });
 
+    await ensureNotProtected(resolvedOld);
+    await ensureNotProtected(resolvedNew);
     await fs.rename(resolvedOld, resolvedNew);
   }
 

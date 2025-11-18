@@ -10,24 +10,26 @@
   },
   "scripts": {
     "build": "tsc && npm run copy-config",
-    "copy-config": "if not exist dist\\config mkdir dist\\config && copy src\\config\\config.json dist\\config\\config.json",
+    "copy-config": "node -e \"const fs=require('fs');const path=require('path');['config.json','protection.json'].forEach(f=>{const src='src/config/'+f;const dest='dist/config';try{fs.mkdirSync(dest,{recursive:true});fs.copyFileSync(src,path.join(dest,f));console.log('Copied '+f)}catch(e){console.error(e)}})\"",
     "start": "npm run build && node dist/app.mjs",
     "dev": "tsx watch src/app.mts",
     "test": "node --test",
     "test:smoke": "tsx --test tests/smoke/*.test.mts",
     "test:edge-cases": "tsx --test tests/edge-cases/*.test.mts",
     "test:unit": "tsx --test tests/unit/*.test.mts",
+    "test:protection": "npm run build && tsx tests/protection.test.mts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "clean": "powershell -Command \"Remove-Item -Path dist -Recurse -Force -ErrorAction SilentlyContinue\"",
+    "clean": "node -e \"const fs=require('fs');try{fs.rmSync('dist',{recursive:true,force:true});console.log('Cleaned dist')}catch(e){}\"",
     "prebuild:exe": "npm run build",
-    "build:exe": "pkg dist/app.mjs --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output build/file-manager",
-    "build:exe:win": "pkg dist/app.mjs --targets node18-win-x64 --output build/file-manager-win.exe",
-    "build:exe:linux": "pkg dist/app.mjs --targets node18-linux-x64 --output build/file-manager-linux",
-    "build:exe:mac": "pkg dist/app.mjs --targets node18-macos-x64 --output build/file-manager-macos"
+    "build:exe": "pkg dist/app.mjs --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output build/file-manager --compress Brotli",
+    "build:exe:win": "pkg dist/app.mjs --targets node18-win-x64 --output build/file-manager-win --compress Brotli",
+    "build:exe:linux": "pkg dist/app.mjs --targets node18-linux-x64 --output build/file-manager-linux --compress Brotli",
+    "build:exe:mac": "pkg dist/app.mjs --targets node18-macos-x64 --output build/file-manager-macos --compress Brotli",
+    "build:all": "npm run clean && npm run build && npm run build:exe"
   },
   "keywords": [
     "file-manager",
@@ -55,7 +57,12 @@
   "pkg": {
     "assets": [
       "dist/**/*",
-      "src/config/**/*"
+      "dist/config/**/*"
+    ],
+    "targets": [
+      "node18-win-x64",
+      "node18-linux-x64",
+      "node18-macos-x64"
     ],
     "outputPath": "build"
   }

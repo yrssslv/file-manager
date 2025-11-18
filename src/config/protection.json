@@ -1,0 +1,26 @@
+{
+  "protectedPaths": [
+    "src",
+    "tests",
+    "node_modules",
+    "dist",
+    "build",
+    ".git",
+    ".vscode",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "eslint.config.mjs",
+    "build.bat",
+    "build.sh",
+    "start.bat",
+    "start.sh",
+    ".gitignore",
+    ".npmrc",
+    ".editorconfig",
+    ".prettierrc",
+    "README.md",
+    "src/config/config.json",
+    "src/config/protection.json"
+  ]
+}

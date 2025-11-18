@@ -6,14 +6,26 @@ import {
   APP_ROOT_DIR,
 } from './constants.mjs';
 
-const APP_PROTECTED_DIRS = ['src', 'tests', 'node_modules', 'dist'];
-const APP_PROTECTED_FILES = [
-  'package.json',
-  'tsconfig.json',
-  'eslint.config.mjs',
-  'README.md',
-  'start.bat',
-];
+interface ProtectionConfig {
+  protectedPaths: string[];
+}
+
+let protectionConfig: ProtectionConfig | null = null;
+
+async function loadProtectionConfig(): Promise<ProtectionConfig> {
+  if (protectionConfig) {
+    return protectionConfig;
+  }
+  try {
+    const configPath = path.join(APP_ROOT_DIR, 'src', 'config', 'protection.json');
+    const content = await fs.readFile(configPath, 'utf-8');
+    protectionConfig = JSON.parse(content);
+    return protectionConfig!;
+  } catch {
+    protectionConfig = { protectedPaths: [] };
+    return protectionConfig;
+  }
+}
 
 let cachedAppRootReal: string | null = null;
 
@@ -36,6 +48,7 @@ function normalizePathForComparison(p: string): string {
 
 export async function isProtectedPath(targetPath: string): Promise<boolean> {
   try {
+    const config = await loadProtectionConfig();
     const appRoot = await getAppRootReal();
     const absoluteTarget = path.resolve(targetPath);
 
@@ -70,50 +83,21 @@ export async function isProtectedPath(targetPath: string): Promise<boolean> {
     }
 
     const normalizedRelPath = relativePath.replace(/\\/g, '/');
-    const parts = normalizedRelPath.split('/');
-    const firstPart = parts[0];
 
-    if (APP_PROTECTED_DIRS.includes(firstPart || '')) {
-      return true;
-    }
+    for (const protectedPath of config.protectedPaths) {
+      const normalizedProtected = protectedPath.replace(/\\/g, '/');
 
-    if (parts.length === 1 && APP_PROTECTED_FILES.includes(firstPart || '')) {
-      return true;
-    }
+      if (normalizedRelPath === normalizedProtected) {
+        return true;
+      }
 
-    const lowerRelPath = normalizedRelPath.toLowerCase();
-    for (const fileName of APP_PROTECTED_FILES) {
-      const lowerFileName = fileName.toLowerCase();
-      if (lowerRelPath === lowerFileName || lowerRelPath.endsWith('/' + lowerFileName)) {
+      if (normalizedRelPath.startsWith(normalizedProtected + '/')) {
         return true;
       }
     }
 
     return false;
   } catch (err) {
-    const pathStr = String(targetPath).toLowerCase().replace(/\\/g, '/');
-
-    for (const dir of APP_PROTECTED_DIRS) {
-      if (
-        pathStr.includes('/' + dir + '/') ||
-        pathStr.startsWith(dir + '/') ||
-        pathStr.includes('/' + dir)
-      ) {
-        return true;
-      }
-    }
-
-    for (const file of APP_PROTECTED_FILES) {
-      const lowerFile = file.toLowerCase();
-      if (
-        pathStr.endsWith('/' + lowerFile) ||
-        pathStr.endsWith(lowerFile) ||
-        pathStr.includes('/' + lowerFile)
-      ) {
-        return true;
-      }
-    }
-
     return true;
   }
 }
@@ -179,6 +163,18 @@ export async function safeUnlink(
   }
 }
 
+async function recursiveProtectionCheck(dirPath: string): Promise<void> {
+  await ensureNotProtected(dirPath);
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    await ensureNotProtected(fullPath);
+    if (entry.isDirectory()) {
+      await recursiveProtectionCheck(fullPath);
+    }
+  }
+}
+
 export async function safeRmdir(
   dirPath: string,
   options: { recursive?: boolean; force?: boolean } = {}
@@ -188,14 +184,8 @@ export async function safeRmdir(
     await ensureNotProtected(dirPath);
 
     if (options.recursive) {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        await ensureNotProtected(fullPath);
-        if (entry.isDirectory()) {
-          await ensureNotProtected(fullPath);
-        }
-      }
+      // Рекурсивно проверяем все файлы и папки внутри
+      await recursiveProtectionCheck(dirPath);
     }
 
     const { recursive = false, force = false } = options;
@@ -243,6 +233,7 @@ export async function copyDir(
     for (const entry of entries) {
       const srcPath = path.join(src, entry.name);
       const destPath = path.join(dest, entry.name);
+      await ensureNotProtected(destPath);
       if (entry.isDirectory()) {
         const result = await copyDir(srcPath, destPath);
         if (!result.success) {
